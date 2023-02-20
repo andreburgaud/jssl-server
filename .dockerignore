@@ -1,0 +1,8 @@
+.gradle/
+gradle/
+.gitignore
+build.gradle
+gradlew
+gradlew.bat
+justfile
+setting.gradle
