@@ -9,7 +9,6 @@ import java.util.ArrayList;
 
 import java.net.InetSocketAddress;
 import java.security.KeyStore;
-import java.util.concurrent.Executors;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -196,5 +195,4 @@ public class Server {
         System.out.printf("Enabled protocols: %s\n", String.join(", ", protocolsArray));
         sslServer.start();
     }
-
 }

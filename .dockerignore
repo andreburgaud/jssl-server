@@ -1,5 +1,7 @@
 .gradle/
 gradle/
+build/
+bin/
 .gitignore
 build.gradle
 gradlew
