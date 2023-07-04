@@ -1,6 +1,6 @@
 # JSSL Server
 
-JSSL Server is a test server enabling all SSL/TLS protocal for the purpose of testing JSSL, a tool which checks misconfigured TLS servers.
+JSSL Server is a test server enabling all SSL/TLS protocols (SSLv3 thorugh TLSv1.3) to test [JSSL Client](https://github.com/andreburgaud/jssl), a tool that checks misconfigured TLS servers.
 
 
 ## Build
@@ -8,6 +8,7 @@ JSSL Server is a test server enabling all SSL/TLS protocal for the purpose of te
 Building the native version of the executable requires a Java GraalVM version with the native tools installed. If you use the `justfile`, similar to a `Makefile`, you will need to install [`just`](https://github.com/casey/just).
 
 The resulting server will require to access a keystore file named `jssl.jks`. You can generate the file with `just gen-keypair`, or, if you don't have `just` installed on your computer, look at the task `gen-keypair` in the `justfile`.
+
 
 ### Jar
 
@@ -25,6 +26,7 @@ $ java -Djava.security.properties==./java.security -jar build/libs/jssl-server.j
 ```
 
 The `java.security.properties` value needs to be overridden to enable all SSL/TLS protocols (from SSLv3 to TLS1.3).
+
 
 ### Native Local
 
