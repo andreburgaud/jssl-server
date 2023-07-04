@@ -22,7 +22,7 @@ RUN mkdir /build
 RUN javac -d /build src/main/java/com/burgaud/jssl/Server.java && \
     jar cfvm /jssl.jar /Manifest.txt -C /build .
 
-RUN native-image --static --no-fallback --libc=musl -jar /jssl.jar -o /jssl-server && \
+RUN native-image --static --no-fallback --libc=musl -jar /jssl.jar -o /jssl-server -H:IncludeResources=".*/jssl.jks$" && \
     strip /jssl-server && \
     upx --best /jssl-server
 

@@ -3,6 +3,9 @@ package com.burgaud.jssl;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.File;
 
 import java.util.Arrays;
 import java.util.ArrayList;
@@ -29,7 +32,7 @@ public class Server {
     private String ksFile;
     private String ksPasswd;
     private String[] protocols;
-    private static final String VERSION = "0.3.0";
+    private static final String VERSION = "0.4.0";
     private static final String APP = "JSSL Test Server";
 
     class RequestHandler implements HttpHandler {
@@ -60,7 +63,16 @@ public class Server {
 
             char[] passwd = ksPasswd.toCharArray();
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            FileInputStream is = new FileInputStream(ksFile);
+            var f = new File(ksFile);
+            InputStream is;
+            if (f.exists()) {
+                is = new FileInputStream(ksFile);
+            }
+            else {
+                System.out.printf("Keystore file %s not found\n", ksFile);
+                // Custom JKS not found using default dummy embed keystore
+                is = this.getClass().getResourceAsStream("/jssl.jks");
+            }
             ks.load(is, passwd);
 
             KeyManagerFactory km = KeyManagerFactory.getInstance("SunX509");
