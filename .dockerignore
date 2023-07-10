@@ -1,10 +1,10 @@
 .gradle/
-gradle/
+#gradle/
 build/
 bin/
 .gitignore
-build.gradle
-gradlew
+#build.gradle
+#gradlew
 gradlew.bat
 justfile
-setting.gradle
+#setting.gradle

@@ -1,7 +1,7 @@
 #!/usr/bin/env just --justfile
 
 APP := "jssl-server"
-VERSION := "0.4.0"
+VERSION := "0.5.0"
 
 alias db := docker-build
 alias nl := native-linux

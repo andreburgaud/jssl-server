@@ -1,7 +1,9 @@
-#FROM ghcr.io/graalvm/native-image:22.3.1 as build
 FROM ghcr.io/graalvm/native-image:muslib-ol9-java17-22.3.2 as build
+#FROM container-registry.oracle.com/graalvm/native-image:muslib-ol9-java17-22.3.2-b1 as build
 
 ENV LANG=C.UTF-8
+
+WORKDIR /jssl-server
 
 RUN useradd -u 10001 jssluser
 
@@ -11,24 +13,21 @@ RUN curl --location --output upx-4.0.2-amd64_linux.tar.xz "https://github.com/up
     tar -xJf "upx-4.0.2-amd64_linux.tar.xz" && \
     cp upx-4.0.2-amd64_linux/upx /bin/
 
-ADD . .
+RUN mkdir -p ./native/bin
 
-COPY Manifest.txt jssl.jks /
+ADD . .
 
 COPY java.security ${JAVA_HOME}/conf/security
 
-RUN mkdir /build
+RUN ./gradlew installDist --no-daemon
 
-RUN javac -d /build src/main/java/com/burgaud/jssl/Server.java && \
-    jar cfvm /jssl.jar /Manifest.txt -C /build .
+RUN native-image --static --no-fallback --libc=musl -H:IncludeResources=".*/jssl.jks$" -jar ./build/install/jssl-server/lib/jssl-server.jar -o /jssl-server/native/bin/jssl-server
 
-RUN native-image --static --no-fallback --libc=musl -jar /jssl.jar -o /jssl-server -H:IncludeResources=".*/jssl.jks$" && \
-    strip /jssl-server && \
-    upx --best /jssl-server
+RUN strip /jssl-server/native/bin/jssl-server && \
+    upx --best /jssl-server/native/bin/jssl-server
 
 FROM scratch
-COPY --from=build /jssl-server /jssl-server
-COPY --from=build /jssl.jks /jssl.jks
+COPY --from=build /jssl-server/native/bin/jssl-server /jssl-server
 COPY --from=build /etc/passwd /etc/passwd
 
 ENV LANG=C.UTF-8

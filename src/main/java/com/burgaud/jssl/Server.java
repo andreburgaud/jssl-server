@@ -32,7 +32,7 @@ public class Server {
     private String ksFile;
     private String ksPasswd;
     private String[] protocols;
-    private static final String VERSION = "0.4.0";
+    private static final String VERSION = "0.5.0";
     private static final String APP = "JSSL Test Server";
 
     class RequestHandler implements HttpHandler {
@@ -69,9 +69,8 @@ public class Server {
                 is = new FileInputStream(ksFile);
             }
             else {
-                System.out.printf("Keystore file %s not found\n", ksFile);
-                // Custom JKS not found using default dummy embed keystore
-                is = this.getClass().getResourceAsStream("/jssl.jks");
+                System.out.printf("Keystore file %s not found, using embedded keystore\n", ksFile);
+                is = ClassLoader.getSystemResourceAsStream("jssl.jks");
             }
             ks.load(is, passwd);
 
