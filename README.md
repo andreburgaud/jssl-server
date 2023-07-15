@@ -40,11 +40,11 @@ you can use **JSSL Client** available at https://github.com/andreburgaud/jssl.
 
 ## Build
 
-The primary options to build **JSSL Server** is to create a `jar` file or to build a `Docker` image. 
+The primary options to build **JSSL Server** are to create a `jar` file or to build a `Docker` image.
 
 ### Jar File
 
-Building a jar file requires a recent version of Java supporting multiline string like Java 17 or 19.
+Building a jar file requires a recent version of Java supporting multiline string like `Java 17` or `Java 19`.
 
 ```
 $ ./gradlew jar
@@ -77,7 +77,7 @@ The following steps require to have `docker` installed on the local machine.
 docker build -t jssl-server .
 ```
 
-The build process includes a first stage that build a native image with [GraalVM](https://www.graalvm.org/) and compress it with [UPX](https://upx.github.io/).
+The build process includes a first stage that builds a native image with [GraalVM](https://www.graalvm.org/) and compresses it with [UPX](https://upx.github.io/).
 Then, the build copies the final executable into a [scratch image](https://hub.docker.com/_/scratch). The final image less than 10MB.  
 
 To run the container:
