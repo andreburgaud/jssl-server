@@ -1,76 +1,75 @@
 # JSSL Server
 
-JSSL Server is a test server enabling all SSL/TLS protocols (SSLv3 thorugh TLSv1.3) to test [JSSL Client](https://github.com/andreburgaud/jssl), a tool that checks misconfigured TLS servers.
+JSSL Server is a test server enabling all SSL/TLS protocols (SSLv3 through TLSv1.3) to test [JSSL Client](https://github.com/andreburgaud/jssl), a tool that checks misconfigured TLS servers.
 
+The simplest way to use **JSSL Server** is to pull the Docker image available at https://hub.docker.com/r/andreburgaud/jssl-server.
+
+## Start the JSSL Server Container
+
+```
+$ docker run --rm -it -p 9999:9999 andreburgaud/jssl-server:0.7.0
+
+   _ ___ ___ _    ___
+ _ | / __/ __| |  / __| ___ _ ___ _____ _ _
+| || \__ \__ \ |__\__ \/ -_) '_\ V / -_) '_|
+ \__/|___/___/____|___/\___|_|  \_/\___|_|
+
+JSSL Test Server version 0.7.0 - Java version 17.0.7
+(c) 2023 Andre Burgaud
+
+Starting single threaded JSSL Test Server at localhost:9999
+Enabled protocols: SSLv3, TLSv1, TLSv1.1, TLSv1.2, TLSv1.3
+
+```
+
+To validate that the server is running, you can execute the following:
+
+```
+$ curl -v -k https://localhost:9999
+```
+
+To test if **JSSL Server** supports TLS1.2:
+
+```
+$ echo -n "Q" | openssl s_client -connect localhost:9999 -tls1_2
+```
+
+Your local [OpenSSL](https://www.openssl.org/) may be limited by the SSL/TLS versions enabled during the OpenSSL build. 
+To get the full spectrum of the SSL/TLS protocols available for testing in **JSSL Server**, 
+you can use **JSSL Client** available at https://github.com/andreburgaud/jssl.  
 
 ## Build
 
-Building the native version of the executable requires a Java GraalVM version with the native tools installed. If you use the `justfile`, similar to a `Makefile`, you will need to install [`just`](https://github.com/casey/just).
+The primary options to build **JSSL Server** is to create a `jar` file or to build a `Docker` image. 
 
-The resulting server will require to access a keystore file named `jssl.jks`. You can generate the file with `just gen-keypair`, or, if you don't have `just` installed on your computer, look at the task `gen-keypair` in the `justfile`.
+### Jar File
 
-
-### Jar
-
-Building a jar file and executing the server from the jar file does not require `GraalVM` or `just` to be installed. A recent version of Java supporting multiline string is sufficient (Java 17 or 19).
+Building a jar file requires a recent version of Java supporting multiline string like Java 17 or 19.
 
 ```
 $ ./gradlew jar
+```
+
+To execute the Jar file, you also need to generate a `keystore` file (the following is an example you can modify):
+
+```
+$ keytool -noprompt -genkeypair \
+    -dname "CN=example.com, OU=some_group, O=some_company, L=Paris, C=FRANCE" \
+    -keyalg RSA -alias selfsigned \
+    -keystore jssl.jks -storepass password \
+    -validity 360 -keysize 2048
 ```
 
 Then:
 
 ```
 $ java -Djava.security.properties==./java.security -jar build/libs/jssl-server.jar
-
 ```
 
 The `java.security.properties` value needs to be overridden to enable all SSL/TLS protocols (from SSLv3 to TLS1.3).
 
 
-### Native Local
-
-To generate a native version of the server locally, you need to use GraalVM. You can install GraalVM with [sdkman](https://sdkman.io/), as follow:
-
-```
-$ sdk install java 22.3.r19-grl
-```
-
-To use GraalVM version 22.3.r19-grl in a terminal:
-
-```
-$ sdk use java 22.3.r19-grl
-```
-
-Before compiling to a native executable, you will need to modify `${JAVA_HOME}/conf/security/java.security` and comment out the following lines:
-
-```
-#jdk.tls.disabledAlgorithms=SSLv3, TLSv1, TLSv1.1, RC4, DES, MD5withRSA, \
-#    DH keySize < 1024, EC keySize < 224, 3DES_EDE_CBC, anon, NULL
-```
-
-It is necessary as the native executable inherits from the Java configuration at compile time. Then:
-
-```
-$ ./gradlew jar
-$ ./gradlew nativeCompile
-```
-
-The executable `jssl-server` will be available in the `build/native/nativeCompile` folder.
-
-You can execute `jssl-server` which require the keystore `jssl.jks` in the directory the server is launch. For example, from the project root, you can execute the following:
-
-```
-$ build/native/nativeCompile/jssl-server
-```
-
-To get additional information, display the help as follows:
-
-```
-$ build/native/nativeCompile/jssl-server --help
-```
-
-### Native Container
+### Docker Container
 
 The following steps require to have `docker` installed on the local machine.
 
@@ -78,14 +77,35 @@ The following steps require to have `docker` installed on the local machine.
 docker build -t jssl-server .
 ```
 
-To execute the container:
+The build process includes a first stage that build a native image with [GraalVM](https://www.graalvm.org/) and compress it with [UPX](https://upx.github.io/).
+Then, the build copies the final executable into a [scratch image](https://hub.docker.com/_/scratch). The final image less than 10MB.  
+
+To run the container:
 
 ```
 $ docker run --rm -it -p 9999:9999 jssl-server:latest
 ```
 
-To test if the server is running, you can use `curl`:
+You can test the container with `curl` or `openssl` as described in section **Start the JSSL Server Container** at the top of the README.
+
+### Native Image
+
+If you are on Linux x86-64, you can build the Docker image and then extract the files needed to run JSSL Server locally:
 
 ```
-$ curl -v -k https://localhost:9999
+$ docker build -t jssl-server .
+$ docker create --name jssl-server-copy jssl-server:latest
+$ docker cp jssl-server-copy:/jssl-server .
+$ docker cp jssl-server-copy:/jssl.jks .
+$ docker rm -f jssl-server-copy
 ```
+
+To start the server:
+
+```
+$ ./jssl-server
+```
+
+## License
+
+JSSL Server is available under the [MIT License](LICENSE)

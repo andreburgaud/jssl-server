@@ -17,7 +17,7 @@ default:
 # Generate keystore jssl.jks for the server
 gen-keypair:
     keytool -noprompt -genkeypair \
-        -dname "CN=burgaud.com, OU=AB, O=AB, L=Minneapolis, S=MN, C=USA" \
+        -dname "CN=jssl-server.com, OU=Burgaud, O=Burgaud, C=FRANCE" \
         -keyalg RSA -alias selfsigned \
         -keystore jssl.jks -storepass password \
         -validity 360 -keysize 2048
