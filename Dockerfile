@@ -18,6 +18,12 @@ ADD . .
 
 COPY java.security ${JAVA_HOME}/conf/security
 
+RUN keytool -noprompt -genkeypair \
+        -dname "CN=jssl-server.com, OU=Burgaud, O=Burgaud, C=FRANCE" \
+        -keyalg RSA -alias selfsigned \
+        -keystore jssl.jks -storepass password \
+        -validity 360 -keysize 2048
+
 RUN ./gradlew installDist --no-daemon
 
 RUN native-image --static --no-fallback --libc=musl -jar ./build/install/jssl-server/lib/jssl-server.jar -o /jssl-server/native/bin/jssl-server

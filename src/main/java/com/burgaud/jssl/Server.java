@@ -4,7 +4,6 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 
@@ -12,6 +11,7 @@ import java.nio.file.Path;
 
 import java.util.Arrays;
 import java.util.ArrayList;
+import java.util.NoSuchElementException;
 
 import java.net.InetSocketAddress;
 import java.net.URISyntaxException;
@@ -33,17 +33,19 @@ import com.sun.net.httpserver.HttpsServer;
 
 public class Server {
 
-    private int port;
-    private String jksFile;
-    private String jksPasswd;
-    private String[] protocols;
-    private static final String VERSION = "0.6.0";
-    private static final String APP = "JSSL Test Server";
-    private static final String DEFAULT_JKS_NAME = "jssl.jks";
+    private final int port;
+    private final String jksFile;
+    private final String jksPasswd;
+    private final String[] protocols;
+    private static final String APP_VERSION = "0.7.0";
+    private static final String APP_NAME = "JSSL Test Server";
+    private static final String DEFAULT_JKS_FILE = "jssl.jks";
     private static final String DEFAULT_JKS_PASSWD = "password";
+    private static final int DEFAULT_PORT = 9999;
 
 
-    private String getLocaljksPath(String jksFile) throws URISyntaxException {
+    private String getJksFromExePath(String jksFile) throws URISyntaxException {
+        // Search for the JKS file in the same directory as the executable
         Path path = Path.of(
             Server.class.getProtectionDomain()
                 .getCodeSource()
@@ -53,33 +55,24 @@ public class Server {
         return path.resolve(jksFile).toString();
     }
 
-    private InputStream getJksInputStream(String jksFile) throws FileNotFoundException {
-        String jksPath = "";
+    private String getJksPath(String jksFile) throws FileNotFoundException {
+        // The file is found in directory of execution or via absolute path
         var f = new File(jksFile);
         if (f.exists()) {
-            jksPath = jksFile;
-        } else {
-            // Assuming jks file in same directlory as executable, not current directory
-            try {
-                var localPath = getLocaljksPath(jksFile);
-                System.out.printf("JKS localpath for %s: %s\n", jksFile, localPath);
-                f = new File(localPath);
-                if (f.exists()) {
-                    jksPath = localPath;
-                }
-            } catch(URISyntaxException e) {
-                System.out.println(e);
-                throw new FileNotFoundException(jksFile);
-            }
+            return jksFile;
         }
-        // TODO: handle null path
-        return new FileInputStream(jksPath);
+        try {
+            return getJksFromExePath(jksFile);
+        } catch (URISyntaxException e) {
+            System.out.println(e.getMessage());
+        }
+        throw new FileNotFoundException(jksFile);
     }
 
-    class RequestHandler implements HttpHandler {
+    static class RequestHandler implements HttpHandler {
         @Override
         public void handle(HttpExchange exchange) throws IOException {
-            String resp = String.format("%s version %s\n", APP, VERSION);
+            String resp = String.format("%s version %s\n", APP_NAME, APP_VERSION);
             HttpsExchange x = (HttpsExchange) exchange;
             x.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
             x.sendResponseHeaders(200, resp.getBytes().length);
@@ -106,10 +99,14 @@ public class Server {
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
 
             try {
-                InputStream is = getJksInputStream(jksFile);
+                String path = getJksPath(jksFile);
+                InputStream is = new FileInputStream(path);
                 ks.load(is, passwd);
             } catch(FileNotFoundException e) {
-                System.out.printf("JKS file (%s) not found.\n", jksFile);
+                System.out.printf("Error: JKS file (%s) not found.\n", jksFile);
+                System.exit(1);
+            } catch(java.io.IOException e) {
+                System.out.printf("Error: Problem opening JKS file %s: %s.\n", jksFile, e.getMessage());
                 System.exit(1);
             }
 
@@ -131,10 +128,7 @@ public class Server {
                         System.out.printf("Connection from %s:%d\n", remote.getHostString(), remote.getPort());
                         SSLParameters sslParams = context.getSupportedSSLParameters();
                         sslParams.setProtocols(protocols);
-                        var sslProtocols = sslParams.getProtocols();
-                        System.out.printf("SSL Protocols: %s\n", String.join(", ", sslProtocols));
                         params.setSSLParameters(sslParams);
-
                     } catch (Exception ex) {
                         System.out.println("Failed to create the HTTPS port");
                     }
@@ -153,7 +147,7 @@ public class Server {
     public static void usage() {
         var help = """
             Usage:
-              jssl-server [--help | --sslv3 | --tlsv1 | --tlsv1.1 | --tlsv1.2 | --tlsv1.2]
+              jssl-server [--help | --sslv3 | --tlsv1 | --tlsv1.1 | --tlsv1.2 | --tlsv1.3]
 
             Description:
               Start a testing SSL/TLS Server with specific protocols enabled. By default, the following
@@ -163,11 +157,16 @@ public class Server {
 
             Options:
               -h, --help     Show this help message and exit.
+              -v, --version  Show the application version.
+              -p, --port     Set a custom port for the server (default: 9999).
+              --keystore     Set the path of the keystore file (default: jssl.jks).
+              --password     Set the password for the keystore (default: password).
               --sslv3        Enable SSL 3.0.
               --tlsv1        Enable TLS 1.0.
               --tlsv1.1      Enable TLS 1.1.
               --tlsv1.2      Enable TLS 1.2.
               --tlsv1.3      Enable TLS 1.3.
+
             """;
         System.out.println(help);
     }
@@ -180,68 +179,59 @@ public class Server {
              \\__/|___/___/____|___/\\___|_|  \\_/\\___|_|
                                                         """;
         System.out.println(banner);
-        System.out.printf("%s version %s - Java version %s\n", Server.APP, Server.VERSION, System.getProperty("java.version"));
+        System.out.printf("%s version %s - Java version %s\n", APP_NAME, APP_VERSION, System.getProperty("java.version"));
         System.out.println("(c) 2023 Andre Burgaud\n");
     }
 
     public static void main(String[] args) throws Exception {
 
-        final String KS_NAME = "jssl.jks";
-        final String KS_PASSWD = "password";
-        final int PORT = 9999;
         final String[] PROTOCOLS = {"SSLv3", "TLSv1", "TLSv1.1", "TLSv1.2", "TLSv1.3"};
 
         printBanner();
 
         var protocols = new ArrayList<>();
+        var jksFile = DEFAULT_JKS_FILE;
+        var password = DEFAULT_JKS_PASSWD;
+        var port = DEFAULT_PORT;
 
-        if (args.length > 0) {
-            for (var arg : args) {
-                if (arg.startsWith("-")) {
+        var it = Arrays.asList(args).listIterator();
+        while (it.hasNext()) {
+            var arg = it.next();
+            if (arg.startsWith("-")) {
+                try {
                     switch (arg.toLowerCase()) {
-                    case "-h":
-                    case "-help":
-                    case "--help":
-                        usage();
-                        System.exit(0);
-                    case "-sslv3":
-                    case "--sslv3":
-                        protocols.add("SSLv3");
-                        break;
-                    case "-tlsv1":
-                    case "--tlsv1":
-                        protocols.add("TLSv1");
-                        break;
-                    case "-tlsv1.1":
-                    case "--tlsv1.1":
-                        protocols.add("TLSv1.1");
-                        break;
-                    case "-tlsv1.2":
-                    case "--tlsv1.2":
-                        protocols.add("TLSv1.2");
-                        break;
-                    case "-tlsv1.3":
-                    case "--tlsv1.3":
-                        protocols.add("TLSv1.3");
-                        break;
-                    default:
-                        System.out.printf("Ignoring unexpected option %s\n", arg);
+                        case "-h", "-help", "--help" -> {
+                            usage();
+                            System.exit(0);
+                        }
+                        case "-v", "--version" -> {
+                            System.out.printf("%s version %s\n", APP_NAME, APP_VERSION);
+                            System.exit(0);
+                        }
+                        case "-p", "--port" -> port = Integer.parseInt(it.next());
+                        case "-keystore", "--keystore" -> jksFile = it.next();
+                        case "-password", "--password" -> password = it.next();
+                        case "-sslv3", "--sslv3" -> protocols.add("SSLv3");
+                        case "-tlsv1", "--tlsv1" -> protocols.add("TLSv1");
+                        case "-tlsv1.1", "--tlsv1.1" -> protocols.add("TLSv1.1");
+                        case "-tlsv1.2", "--tlsv1.2" -> protocols.add("TLSv1.2");
+                        case "-tlsv1.3", "--tlsv1.3" -> protocols.add("TLSv1.3");
+                        default -> System.out.printf("Ignoring unexpected option %s\n", arg);
                     }
+                } catch(NoSuchElementException e) {
+                    System.out.printf("Error: did you miss the option argument to %s?\n", arg);
+                    System.exit(1);
                 }
-                else {
-                    System.out.printf("Ignoring unexpected argument %s\n", arg);
-                }
+            } else {
+                System.out.printf("Ignoring unexpected argument %s\n", arg);
             }
         }
 
-        if (protocols.size() == 0) {
-            protocols.addAll(Arrays.asList(PROTOCOLS));
-        }
+        if (protocols.size() == 0) protocols.addAll(Arrays.asList(PROTOCOLS));
+        String[] protocolsArray = protocols.toArray(new String[0]);
+        var sslServer = new Server(port, jksFile, password, protocolsArray);
 
-        String[] protocolsArray = protocols.toArray(new String[protocols.size()]);
-        var sslServer = new Server(PORT, KS_NAME, KS_PASSWD, protocolsArray);
-
-        System.out.printf("Starting single threaded %s at localhost:%d\n", Server.APP, PORT);
+        System.out.printf("Starting single threaded %s at localhost:%d\n", APP_NAME, DEFAULT_PORT);
         System.out.printf("Enabled protocols: %s\n", String.join(", ", protocolsArray));
         sslServer.start();
     }

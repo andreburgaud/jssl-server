@@ -2,3 +2,4 @@ jssl.jks
 build/
 bin/
 .gradle/
+.idea/
