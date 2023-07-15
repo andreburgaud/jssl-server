@@ -43,6 +43,8 @@ public class Server {
     private static final String DEFAULT_JKS_PASSWD = "password";
     private static final int DEFAULT_PORT = 9999;
 
+    HttpsServer httpsServer;
+
 
     private String getJksFromExePath(String jksFile) throws URISyntaxException {
         // Search for the JKS file in the same directory as the executable
@@ -82,6 +84,19 @@ public class Server {
         }
     }
 
+    static class GracefulExit extends Thread {
+        Server _server;
+        public GracefulExit(Server server) {
+            this._server = server;
+        }
+        @Override
+        public void run() {
+            System.out.println("\nStopping the server...");
+            _server.httpsServer.stop(1);
+            System.out.println("Bye!");
+        }
+    }
+
     Server(int port, String jksFile, String jksPasswd, String[] protocols) {
         this.port = port;
         this.jksFile = jksFile;
@@ -89,10 +104,12 @@ public class Server {
         this.protocols = protocols;
     }
 
+
+
     public void start() {
         try {
             InetSocketAddress address = new InetSocketAddress(port);
-            HttpsServer server = HttpsServer.create(address, 0);
+            httpsServer = HttpsServer.create(address, 0);
             SSLContext context = SSLContext.getInstance("SSL");
 
             char[] passwd = jksPasswd.toCharArray();
@@ -117,7 +134,7 @@ public class Server {
             tm.init(ks);
 
             context.init(km.getKeyManagers(), tm.getTrustManagers(), null);
-            server.setHttpsConfigurator(new HttpsConfigurator(context) {
+            httpsServer.setHttpsConfigurator(new HttpsConfigurator(context) {
                 public void configure(HttpsParameters params) {
                     try {
                         SSLContext context = getSSLContext();
@@ -134,10 +151,9 @@ public class Server {
                     }
                 }
             });
-            server.createContext("/", new RequestHandler());
-            server.setExecutor(null);
-            server.start();
-
+            httpsServer.createContext("/", new RequestHandler());
+            httpsServer.setExecutor(null);
+            httpsServer.start();
         } catch (Exception exception) {
             System.out.println("Error starting HTTPS server");
             exception.printStackTrace();
@@ -228,11 +244,13 @@ public class Server {
         }
 
         if (protocols.size() == 0) protocols.addAll(Arrays.asList(PROTOCOLS));
-        String[] protocolsArray = protocols.toArray(new String[0]);
+        String[] protocolsArray = protocols.toArray(new String[protocols.size()]);
+
         var sslServer = new Server(port, jksFile, password, protocolsArray);
 
         System.out.printf("Starting single threaded %s at localhost:%d\n", APP_NAME, DEFAULT_PORT);
         System.out.printf("Enabled protocols: %s\n", String.join(", ", protocolsArray));
+        Runtime.getRuntime().addShutdownHook(new GracefulExit(sslServer));
         sslServer.start();
     }
 }
