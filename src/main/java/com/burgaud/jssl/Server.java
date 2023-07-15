@@ -6,11 +6,16 @@ import java.io.OutputStream;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.File;
+import java.io.FileNotFoundException;
+
+import java.nio.file.Path;
 
 import java.util.Arrays;
 import java.util.ArrayList;
 
 import java.net.InetSocketAddress;
+import java.net.URISyntaxException;
+
 import java.security.KeyStore;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -29,11 +34,47 @@ import com.sun.net.httpserver.HttpsServer;
 public class Server {
 
     private int port;
-    private String ksFile;
-    private String ksPasswd;
+    private String jksFile;
+    private String jksPasswd;
     private String[] protocols;
-    private static final String VERSION = "0.5.0";
+    private static final String VERSION = "0.6.0";
     private static final String APP = "JSSL Test Server";
+    private static final String DEFAULT_JKS_NAME = "jssl.jks";
+    private static final String DEFAULT_JKS_PASSWD = "password";
+
+
+    private String getLocaljksPath(String jksFile) throws URISyntaxException {
+        Path path = Path.of(
+            Server.class.getProtectionDomain()
+                .getCodeSource()
+                .getLocation()
+                .toURI()
+        ).getParent();
+        return path.resolve(jksFile).toString();
+    }
+
+    private InputStream getJksInputStream(String jksFile) throws FileNotFoundException {
+        String jksPath = "";
+        var f = new File(jksFile);
+        if (f.exists()) {
+            jksPath = jksFile;
+        } else {
+            // Assuming jks file in same directlory as executable, not current directory
+            try {
+                var localPath = getLocaljksPath(jksFile);
+                System.out.printf("JKS localpath for %s: %s\n", jksFile, localPath);
+                f = new File(localPath);
+                if (f.exists()) {
+                    jksPath = localPath;
+                }
+            } catch(URISyntaxException e) {
+                System.out.println(e);
+                throw new FileNotFoundException(jksFile);
+            }
+        }
+        // TODO: handle null path
+        return new FileInputStream(jksPath);
+    }
 
     class RequestHandler implements HttpHandler {
         @Override
@@ -48,10 +89,10 @@ public class Server {
         }
     }
 
-    Server(int port, String ksFile, String ksPasswd, String[] protocols) {
+    Server(int port, String jksFile, String jksPasswd, String[] protocols) {
         this.port = port;
-        this.ksFile = ksFile;
-        this.ksPasswd = ksPasswd;
+        this.jksFile = jksFile;
+        this.jksPasswd = jksPasswd;
         this.protocols = protocols;
     }
 
@@ -61,23 +102,21 @@ public class Server {
             HttpsServer server = HttpsServer.create(address, 0);
             SSLContext context = SSLContext.getInstance("SSL");
 
-            char[] passwd = ksPasswd.toCharArray();
+            char[] passwd = jksPasswd.toCharArray();
             KeyStore ks = KeyStore.getInstance(KeyStore.getDefaultType());
-            var f = new File(ksFile);
-            InputStream is;
-            if (f.exists()) {
-                is = new FileInputStream(ksFile);
-            }
-            else {
-                System.out.printf("Keystore file %s not found, using embedded keystore\n", ksFile);
-                is = ClassLoader.getSystemResourceAsStream("jssl.jks");
-            }
-            ks.load(is, passwd);
 
-            KeyManagerFactory km = KeyManagerFactory.getInstance("SunX509");
+            try {
+                InputStream is = getJksInputStream(jksFile);
+                ks.load(is, passwd);
+            } catch(FileNotFoundException e) {
+                System.out.printf("JKS file (%s) not found.\n", jksFile);
+                System.exit(1);
+            }
+
+            KeyManagerFactory km = KeyManagerFactory.getInstance("PKIX");
             km.init(ks, passwd);
 
-            TrustManagerFactory tm = TrustManagerFactory.getInstance("SunX509");
+            TrustManagerFactory tm = TrustManagerFactory.getInstance("PKIX");
             tm.init(ks);
 
             context.init(km.getKeyManagers(), tm.getTrustManagers(), null);

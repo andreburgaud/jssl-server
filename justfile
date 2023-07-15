@@ -1,7 +1,7 @@
 #!/usr/bin/env just --justfile
 
 APP := "jssl-server"
-VERSION := "0.5.0"
+VERSION := "0.6.0"
 
 alias db := docker-build
 alias nl := native-linux
@@ -33,7 +33,7 @@ native-linux: clean
     docker create --name {{APP}}-build andreburgaud/{{APP}}:{{VERSION}}
     docker cp {{APP}}-build:/{{APP}} ./bin
     docker rm -f {{APP}}-build
-    zip -j bin/{{APP}}-{{VERSION}}_linux_{{arch()}}.zip ./bin/{{APP}}
+    zip -j bin/{{APP}}-{{VERSION}}_linux_{{arch()}}.zip ./bin/{{APP}} ./jssl.jks
 
 # Generate the jar file
 gradle-jar:
