@@ -24,12 +24,12 @@ gen-keypair:
         -validity 360 -keysize 2048
 
 # Build a docker image
-docker-build:
+docker-build: clean
     docker build -t andreburgaud/{{APP}}:latest .
     docker tag andreburgaud/{{APP}}:latest andreburgaud/{{APP}}:{{VERSION}}
 
 # Native compile via container (Linux only)
-native-linux: clean
+native-linux: docker-build
     mkdir ./bin
     docker create --name {{APP}}-build andreburgaud/{{APP}}:{{VERSION}}
     docker cp {{APP}}-build:/{{APP}} ./bin
