@@ -16,12 +16,10 @@ tasks.named('jar') {
 }
 
 graalvmNative {
-    binaries.all {
-         resources.autodetect()
-    }
     binaries {
         main {
-            buildArgs.add('-o jssl-server')
+            buildArgs.add('--no-fallback')
+            buildArgs.add('-o jssl')
         }
     }
 }

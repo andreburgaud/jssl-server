@@ -7,14 +7,14 @@ The simplest way to use **JSSL Server** is to pull the Docker image available at
 ## Start the JSSL Server Container
 
 ```
-$ docker run --rm -it -p 9999:9999 andreburgaud/jssl-server:0.7.0
+$ docker run --rm -it -p 9999:9999 andreburgaud/jssl-server:0.8.0
 
    _ ___ ___ _    ___
  _ | / __/ __| |  / __| ___ _ ___ _____ _ _
 | || \__ \__ \ |__\__ \/ -_) '_\ V / -_) '_|
  \__/|___/___/____|___/\___|_|  \_/\___|_|
 
-JSSL Test Server version 0.7.0 - Java version 17.0.7
+JSSL Test Server version 0.8.0 - Java version 17.0.7
 (c) 2023 Andre Burgaud
 
 Starting single threaded JSSL Test Server at localhost:9999
@@ -106,19 +106,16 @@ To start the server:
 $ ./jssl-server
 ```
 
-### Native Image via Gradle
+### Native Image
 
-To build a native image on machine - it needs to be Linux - you need to [install GraalVM](https://www.graalvm.org/latest/docs/getting-started/). You can also use [SDKMAN](https://sdkman.io/) to manage different JVMs, including GraalVM.
+To build a native image on your machine - not via Docker - you need to [install GraalVM](https://www.graalvm.org/latest/docs/getting-started/). You can also use [SDKMAN](https://sdkman.io/) to manage different JVMs, including GraalVM.
 
-You can build a native image, executing the following command:
+You can build a local native image, executing the following command:
 
 ```
-$ ./gradlew nativeCompile
+$ just native-image
 ```
 
-Note that to start a server with all protocol versions enabled, from SSLv3 to TLSv1.3, you would also need to copy `java.security` to `${JAVA_HOME}/conf/security`. This is not recommended as this setting would remain for other applications build or running with this particular Java runtime. Levereging the Docker build allows for this operation to take place in a sandbox and not to expose security issues to other applications.
-
-Without overriding `java.security` of the current Java environment will only enable `TLS1.2` and `TLS1.3`.
 
 ## License
 

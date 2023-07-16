@@ -37,7 +37,7 @@ public class Server {
     private final String jksFile;
     private final String jksPasswd;
     private final String[] protocols;
-    private static final String APP_VERSION = "0.7.0";
+    private static final String APP_VERSION = "0.8.0";
     private static final String APP_NAME = "JSSL Test Server";
     private static final String DEFAULT_JKS_FILE = "jssl.jks";
     private static final String DEFAULT_JKS_PASSWD = "password";
