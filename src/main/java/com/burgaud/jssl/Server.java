@@ -104,8 +104,6 @@ public class Server {
         this.protocols = protocols;
     }
 
-
-
     public void start() {
         try {
             InetSocketAddress address = new InetSocketAddress(port);
