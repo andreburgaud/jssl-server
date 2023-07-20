@@ -1,7 +1,7 @@
 #!/usr/bin/env just --justfile
 
 APP := "jssl-server"
-VERSION := "0.8.0"
+VERSION := "0.8.1"
 NATIVE_DIR := "native"
 
 alias db := docker-build
@@ -45,16 +45,18 @@ gradle-jar:
 gradle-native: gradle-jar
     ./gradlew nativeCompile
 
-# Generate the jar file
-native-image: clean
+# Build local native-image (requires GraalVM)
+native-image: clean gen-keypair
     ./gradlew installDist
     mkdir -p {{NATIVE_DIR}}/bin
     native-image --initialize-at-build-time={{APP}} -Djava.security.properties==./java.security --no-fallback -jar build/install/jssl-server/lib/jssl-server.jar -o {{NATIVE_DIR}}/bin/{{APP}}
+    zip -j {{NATIVE_DIR}}/bin/{{APP}}-{{VERSION}}_{{os()}}_{{arch()}}.zip {{NATIVE_DIR}}/bin/{{APP}} ./jssl.jks
 
 # Clean build and release artifacts
 clean:
     ./gradlew clean
     -rm -rf ./bin
+    -rm jssl.jks
 
 # Push and tag changes to github
 github-push:

@@ -37,7 +37,7 @@ public class Server {
     private final String jksFile;
     private final String jksPasswd;
     private final String[] protocols;
-    private static final String APP_VERSION = "0.8.0";
+    private static final String APP_VERSION = "0.8.1";
     private static final String APP_NAME = "JSSL Test Server";
     private static final String DEFAULT_JKS_FILE = "jssl.jks";
     private static final String DEFAULT_JKS_PASSWD = "password";
@@ -219,7 +219,6 @@ public class Server {
                             System.exit(0);
                         }
                         case "-v", "--version" -> {
-                            System.out.printf("%s version %s\n", APP_NAME, APP_VERSION);
                             System.exit(0);
                         }
                         case "-p", "--port" -> port = Integer.parseInt(it.next());
@@ -246,7 +245,7 @@ public class Server {
 
         var sslServer = new Server(port, jksFile, password, protocolsArray);
 
-        System.out.printf("Starting single threaded %s at localhost:%d\n", APP_NAME, DEFAULT_PORT);
+        System.out.printf("Starting single threaded %s at localhost:%d\n", APP_NAME, port);
         System.out.printf("Enabled protocols: %s\n", String.join(", ", protocolsArray));
         Runtime.getRuntime().addShutdownHook(new GracefulExit(sslServer));
         sslServer.start();
