@@ -1,4 +1,4 @@
-FROM ghcr.io/graalvm/native-image:muslib-ol9-java17-22.3.2 as build
+FROM container-registry.oracle.com/graalvm/native-image:21-muslib-ol9 as build
 
 ENV LANG=C.UTF-8
 
@@ -8,9 +8,9 @@ RUN useradd -u 10001 jssluser
 
 RUN microdnf -y install findutils xz
 
-RUN curl --location --output upx-4.0.2-amd64_linux.tar.xz "https://github.com/upx/upx/releases/download/v4.0.2/upx-4.0.2-amd64_linux.tar.xz" && \
-    tar -xJf "upx-4.0.2-amd64_linux.tar.xz" && \
-    cp upx-4.0.2-amd64_linux/upx /bin/
+RUN curl --location --output upx-4.1.0-amd64_linux.tar.xz "https://github.com/upx/upx/releases/download/v4.1.0/upx-4.1.0-amd64_linux.tar.xz" && \
+    tar -xJf "upx-4.1.0-amd64_linux.tar.xz" && \
+    cp upx-4.1.0-amd64_linux/upx /bin/
 
 RUN mkdir -p ./native/bin
 
